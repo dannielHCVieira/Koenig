@@ -1,0 +1,61 @@
+name: E2E Tests - Playwright
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main, master, develop]
+  pull_request:
+
+jobs:
+  e2e-tests:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      
+      - name: Cache dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            node_modules
+            ~/.cache/ms-playwright
+          key: ${{ runner.os }}-node-playwright-${{ hashFiles('package-lock.json', 'yarn.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-node-playwright-
+      
+      - name: Install dependencies
+        run: |
+          if [ -f "yarn.lock" ]; then
+            yarn install --frozen-lockfile
+          else
+            npm ci
+          fi
+      
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps
+      
+      - name: Build project
+        run: |
+          if [ -f "yarn.lock" ]; then
+            yarn build --if-present || true
+          else
+            npm run build --if-present || true
+          fi
+        continue-on-error: true
+      
+      - name: Run E2E Tests
+        run: npx playwright test packages/koenig-lexical/test/e2e/card-behaviour.test.js packages/koenig-lexical/test/e2e/floating-toolbar.test.js packages/koenig-lexical/test/e2e/format-shortcuts.test.js packages/koenig-lexical/test/e2e/list-behaviour.test.js packages/koenig-lexical/test/e2e/node-transforms.test.js packages/koenig-lexical/test/e2e/paste-behaviour.test.js packages/koenig-lexical/test/e2e/plus-button.test.js packages/koenig-lexical/test/e2e/selection.test.js packages/koenig-lexical/test/e2e/slash-menu.test.js packages/koenig-lexical/test/e2e/title-behaviour.test.js packages/koenig-lexical/test/e2e/cards/audio-card.test.js packages/koenig-lexical/test/e2e/cards/button-card.test.js packages/koenig-lexical/test/e2e/cards/callout-card.test.js packages/koenig-lexical/test/e2e/cards/code-block-card.test.js packages/koenig-lexical/test/e2e/cards/collection-card.test.js packages/koenig-lexical/test/e2e/cards/email-card.test.js packages/koenig-lexical/test/e2e/cards/email-cta-card.test.js packages/koenig-lexical/test/e2e/cards/embed-card.test.js packages/koenig-lexical/test/e2e/cards/file-card.test.js packages/koenig-lexical/test/e2e/cards/gallery-card.test.js packages/koenig-lexical/test/e2e/cards/header-card.test.js packages/koenig-lexical/test/e2e/cards/html-card.test.js packages/koenig-lexical/test/e2e/cards/image-card.test.js packages/koenig-lexical/test/e2e/cards/markdown-card.test.js packages/koenig-lexical/test/e2e/cards/paywall-card.test.js packages/koenig-lexical/test/e2e/cards/product-card.test.js packages/koenig-lexical/test/e2e/cards/signup-card.test.js packages/koenig-lexical/test/e2e/cards/toggle-card.test.js packages/koenig-lexical/test/e2e/cards/video-card.firefox.test.js packages/koenig-lexical/test/e2e/editors/basic-editor.test.js packages/koenig-lexical/test/e2e/editors/minimal-editor.test.js packages/koenig-lexical/test/e2e/modals/UnsplashSelector.test.js packages/koenig-lexical/test/e2e/plugins/DragDropPastePlugin.firefox.test.js packages/koenig-lexical/test/e2e/plugins/DragDropPastePlugin.test.js packages/koenig-lexical/test/e2e/plugins/DragDropReorderPlugin.test.js packages/koenig-lexical/test/e2e/plugins/EmojiPickerPlugin.test.js packages/koenig-lexical/test/e2e/plugins/HtmlOutputPlugin.test.js packages/koenig-lexical/test/e2e/plugins/KoenigSnippetPlugin.test.js packages/koenig-lexical/test/e2e/plugins/RestrictContentPlugin.test.js packages/koenig-lexical/test/e2e/plugins/TKPlugin.test.js packages/koenig-lexical/test/e2e/plugins/WordCountPlugin.test.js packages/koenig-lexical/test/e2e/text-transforms/code-block.test.js packages/koenig-lexical/test/e2e/text-transforms/emdash-endash.test.js packages/koenig-lexical/test/e2e/text-transforms/headings.test.js packages/koenig-lexical/test/e2e/text-transforms/horizontal-line-rule.test.js packages/koenig-lexical/test/e2e/text-transforms/links.test.js packages/koenig-lexical/test/e2e/text-transforms/markdown.test.js packages/koenig-lexical/test/e2e/text-transforms/paywall.test.js packages/koenig-lexical/test/e2e/utils/getImageDimensions.test.js
+      
+      - name: Upload Playwright report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: playwright-report
+          path: playwright-report
+          if-no-files-found: ignore
